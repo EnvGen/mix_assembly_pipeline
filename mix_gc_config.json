@@ -1,0 +1,23 @@
+{"work_dir": "/crex/proj/supap_storage_2023/01_Projects/Mix_assembly_pipeline",
+"path_to_ind_assembly_list": "Ind_contigs_list.csv",
+"path_to_co_assembly_contigs": "/crex/proj/snic2020-6-126/uppstore2017125/projects/barm_clust/co_assembly/normalized_assembly_large/co_assembly.contigs.fa.gz",
+"prodigal_params": "-p meta -q",
+"cluster_params":"-c 0.95 --min-seq-id 0.95 --cov-mode 1 --cluster-mode 2",
+"list_specific_genes_to_remove": "/home/lfdelzam/Projects/short_project/T_Thermo_protein_names/Mix_tthermop_protein_names",
+"tmp_dir":"TMP_dir",
+"path_to_eggnog_db": "/crex/proj/supap_storage_2023/miniconda3/envs/eggnog_mapper_env/data/",
+"path_dbcan_db":"dbcan_db/dbCAN-fam-HMMs.txt",
+"path_pfam_db":"Pfam_db/Pfam-A.hmm",
+"taxonomy_DB": "uniprot",
+"GTDB": {
+        "GTDB_dir":"GTDB_aa_db/protein_faa_reps",
+        "bact_tsv": "GTDB_aa_db/bac120_taxonomy.tsv",
+        "arch_tsv": "GTDB_aa_db/ar53_taxonomy.tsv"
+        },
+"uniprot": {
+            "uniprot_db_type":"UniRef90",
+            "by_chuncks": True,
+            },
+"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.95 --report-mode 1",
+"threads":20
+}
