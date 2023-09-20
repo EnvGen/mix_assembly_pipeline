@@ -44,7 +44,7 @@
 			"cluster_params":"-c 0.95 --min-seq-id 0.95 --cov-mode 1 --cluster-mode 2",
 
 			Functional annotation:
-			"list_specific_genes_to_remove": "None", #in case you have a list of genes that you specifically want to remove
+			"list_specific_genes_to_remove": "None", #in case you have a list of genes that you specifically want to remove. File with one gene name per line
 			"path_to_eggnog_db": "abs/path/to/eggnog_db/data",
 			"path_dbcan_db":"dbcan_db/dbCAN-fam-HMMs.txt", #It not available the pipeline will download it
 			"path_pfam_db":"/Users/luisdelgado/Documents/Mix_assembly_pipeline/Pfam_db/Pfam-A.hmm", ##It not available the pipeline will download it
@@ -78,6 +78,6 @@
 		rep_genes.fna
 		rep_clusters.tsv
 		rep_contigs.fasta.gz
-            	rep_annotation.tsv
-            	rep_genes_taxonomy.tsv
-            	rep_genes_taxonomy_krona.html
+  		rep_annotation.tsv
+	     	rep_genes_taxonomy.tsv
+	     	rep_genes_taxonomy_krona.html
