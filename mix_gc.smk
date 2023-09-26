@@ -412,8 +412,8 @@ if config["taxonomy_DB"] == "gtdb" or config["taxonomy_DB"] == "uniprot" and con
     shell: '''
               mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 0
               cd {params.s}
-              cp {params.ai} tempo_map & mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax & mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map && mv tempo_map {params.ao}
+              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
               cd {params.w}
             '''
 
@@ -452,8 +452,8 @@ if config["taxonomy_DB"] == "gtdb" or config["taxonomy_DB"] == "uniprot" and con
     shell: '''
               mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 0
               cd {params.s}
-              cp {params.ai} tempo_map & mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax & mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map && mv tempo_map {params.ao}
+              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
               cd {params.w}
             '''
 
@@ -494,8 +494,8 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
     shell: '''
               mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 0
               cd {params.s}
-              cp {params.ai} tempo_map & mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax & mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map && mv tempo_map {params.ao}
+              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
               cd {params.w}
             '''
 
@@ -534,8 +534,8 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
     shell: '''
               mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads}
               cd {params.s}
-              cp {params.ai} tempo_map & mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax & mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map && mv tempo_map {params.ao}
+              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
               cd {params.w}
             '''
 
