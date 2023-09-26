@@ -207,7 +207,7 @@ rule remove_false_positive:
   threads: 1
   shell:  """
                 if [ ! -s list_rRNA_genes_in_mix.txt ]; then
-                    grep 'rRNA' {input.r} | awk '{{print $3}}' > list_rRNA_genes_in_mix.txt
+                    grep 'rRNA' {input.r} | awk '{{print \$3}}' > list_rRNA_genes_in_mix.txt
                 fi
                 python src/clean_mix_assembly_genes.py -g {input.g} -p {input.p} -m {params.m} -o {output.g} -u {output.p}
           """
