@@ -22,6 +22,7 @@
 # Usage
 
 	1. Prepare your Ind_contigs_list.csv file: one line per sample following this format: <sample name>,<path to assembly file .fasta or fasta.gz>
+ 		Files can be compressed (only .gz). Make sure samples names nor contigs header use "::", e.g., >This_is_not_allowed::in_contigs_headers, No_::_in_sample_name 
 
 
 	2. Modify config file:
