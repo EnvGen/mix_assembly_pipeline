@@ -6,7 +6,7 @@ import io
 import gzip
 import math
 
-usage= 'usage: python split_co_assembly.py [-i] [-c] [-o] [-n] [-p]'
+usage= 'usage: python split_fasta.py [-i] [-c] [-o] [-n] [-p]'
 description = 'This program splits a fasta (interleaved or not) file (.fa or .fa.gz) into N small files'
 
 parser = argparse.ArgumentParser(description=description, usage=usage)
@@ -22,9 +22,15 @@ def list_of_seqs_in_files():
     seqs_file_y=math.floor(int(args.n)/int(args.c))
     counter_x=int(args.n) - seqs_file_y*int(args.c)
     counter_y=int(args.c) - counter_x
+
     myList1 = [ seqs_file_y  for i in range(counter_y) ]
-    myList2 = [ seqs_file_x  for i in range(counter_x) ]
-    myList1.extend(myList2)
+    if counter_x != 0:
+        myList2 = [ seqs_file_x  for i in range(counter_x) ]
+        myList1.extend(myList2)
+        print("INFO: File has {} sequences, and will be splited in {} files with {} sequences and {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y, counter_x, seqs_file_x))
+    else:
+        print("INFO: File has {} sequences, and will be splited in {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y))
+
     return(myList1)
 
 if not os.path.exists(args.o):

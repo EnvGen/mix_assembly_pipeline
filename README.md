@@ -50,20 +50,25 @@
 			"path_pfam_db":"/Users/luisdelgado/Documents/Mix_assembly_pipeline/Pfam_db/Pfam-A.hmm", ##It not available the pipeline will download it
 
 			Taxonomy assignment:
-			"taxonomy_DB": "uniprot", #options gtdb, uniprot - The pipeline will download the databases
+			"taxonomy_DB": "uniprot", #options gtdb, uniprot - The pipeline will download the databases. GTDB works only on prokaryotes, you need to include a Uniprot database here after for the taxonomy affiliation of other Kindoms.  
 			"GTDB": {
 			        "GTDB_dir":"GTDB_aa_db/protein_faa_reps",
 			        "bact_tsv": "GTDB_aa_db/bac120_taxonomy.tsv",
 			        "arch_tsv": "GTDB_aa_db/ar53_taxonomy.tsv"
 			        },
 			"uniprot": {
-			            "uniprot_db_type":"UniRef90", #see mmseqs2 manual for more Uniprot databases (https://mmseqs.com/latest/userguide.pdf)
-			            "by_chuncks": True,  #split the database into Kindoms to reduce the RAM requirements
+			            "uniprot_db_type":"UniRef90", #. Always provide an Uniprot database. See mmseqs2 manual for more Uniprot databases (https://mmseqs.com/latest/userguide.pdf)
+			            "by_chuncks": True,  #Options: True, False. If True, it splits the taxonomy database into Kindoms to reduce the RAM requirements
 			            },
-			"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.95 --report-mode 1",
+			"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.4 -s 1 --report-mode 1",
 
 			Threads:
-			"threads":20
+			"threads":20 - number of cpus to be used
+
+			To easy the functional annotation steps, the process can be run by chunks
+			"n_chuncks_annotations": 20 - Number of chuncks. If higher than number of threads, it will be set to max number of cpus available.
+
+
 
 			Save modifications.
 
@@ -74,10 +79,15 @@
 
 	4.	Gene_catalog is the main output folder, containing the following files:
 
- 		rep_proteins.faa
-		rep_genes.fna
-		rep_clusters.tsv
-		rep_contigs.fasta.gz
-  		rep_annotation.tsv
-	     	rep_genes_taxonomy.tsv
-	     	rep_genes_taxonomy_krona.html
+
+				rep_annotation.tsv
+				rep_clusters.tsv
+				rep_contigs_taxonomy_krona.html
+				rep_contigs_taxonomy_krona.txt
+				rep_contigs_taxonomy.tsv
+				rep_contigs.fasta.gz
+				rep_genes_taxonomy_krona.html
+				rep_genes_taxonomy_krona.txt
+				rep_genes_taxonomy.tsv
+				rep_genes.fna
+				rep_proteins.faa

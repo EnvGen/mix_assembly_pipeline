@@ -21,7 +21,7 @@ def get_false_positives(file, removable):
         for line in fin:
             line=line.rstrip()
             if "::" in line:
-                line=linne.split("::")[1]
+                line=line.split("::")[1]
             removable.add(line)
     return removable
 
@@ -50,4 +50,3 @@ if os.path.isfile(args.m):
 set_of_genes_to_remove=get_false_positives(args.f, set_of_genes_to_remove)
 print_file(args.g, args.o, set_of_genes_to_remove)
 print_file(args.p, args.u, set_of_genes_to_remove)
-

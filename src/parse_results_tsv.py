@@ -29,14 +29,12 @@ for file in files:
             Nreads=float(LS[6])
             if query in query_hits:
                 if support_received > float(query_hits[query].split("\t")[7]) and Nreads > float(query_hits[query].split("\t")[6]):
-                    print(support_received)
-                    print(Nreads)
                     query_hits[query]=line
             else:
                 query_hits[query]=line
 
 
-print("printing out best hits")
+
 with open(args.o, "w") as fu:
     for l in query_hits.values():
                 print(l, file=fu)

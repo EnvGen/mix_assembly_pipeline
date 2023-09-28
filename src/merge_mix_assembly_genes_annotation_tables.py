@@ -48,16 +48,16 @@ def get_dbcan(file, dic, includ):
         for line in fin:
             line=line.rstrip()
             if not line.startswith("#"):
-                query=line.split()[2].rstrip()
+                query=line.split()[0].rstrip() #2
                 score=line.split()[5]
                 if query in dic:
                     check=dic[query].split()[5]
                     if check > score:
                         dic[query]=line
-                        includ[query]=line.split()[0].split(".")[0]
+                        includ[query]=line.split()[2].split(".")[0] #0
                 else:
                     dic[query]=line
-                    includ[query]=line.split()[0].split(".")[0]
+                    includ[query]=line.split()[2].split(".")[0]
 
     return dic, includ
 
@@ -72,17 +72,17 @@ def get_pfam(file, dic, include):
         for line in fin:
             line=line.rstrip()
             if not line.startswith("#"):
-                target=line.split()[2].rstrip()
+                target=line.split()[0].rstrip() #2
                 score=line.split()[5]
 
                 if target in dic:
                     check=dic[target].split()[5]
                     if check > score:
                         dic[target]=line
-                        include[target]=line.split()[:2]
+                        include[target]=line.split()[1:3] #:2
                 else:
                     dic[target]=line
-                    include[target]=line.split()[:2]
+                    include[target]=line.split()[1:3] #:2
 
     return dic, include
 

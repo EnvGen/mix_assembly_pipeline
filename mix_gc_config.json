@@ -18,6 +18,7 @@
             "uniprot_db_type":"UniRef90",
             "by_chuncks": True,
             },
-"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.95 --report-mode 1",
-"threads":20
+"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.4 -s 1 --report-mode 1",
+"threads":20,
+"n_chuncks_annotations": 20
 }

@@ -16,6 +16,15 @@ def contigs_ind_assemblies(input_file):
         ind_files.append(line[1])
   return(ind_samples, ind_files)
 
+def n_chuncks(intial_op, cps):
+    if intial_op > cps:
+        print("INFO: Number of chuncks will be limited to the number of CPUS available to avoid memory issues")
+        chunks=cps
+    else:
+        chunks=intial_op
+    return(chunks)
+
+chunks=n_chuncks(int(config["n_chuncks_annotations"]),int(config["threads"]) )
 
 names, path_files = contigs_ind_assemblies(config["path_to_ind_assembly_list"])
 
@@ -23,12 +32,14 @@ names, path_files = contigs_ind_assemblies(config["path_to_ind_assembly_list"])
 rule all:
     input:  "Gene_catalog/rep_proteins.faa", "Gene_catalog/rep_genes.fna",
             "Gene_catalog/rep_annotation.tsv", "Gene_catalog/rep_contigs.fasta.gz",
-            "Gene_catalog/rep_genes_taxonomy.tsv", "Gene_catalog/rep_clusters.tsv",
+            "Gene_catalog/rep_contigs_taxonomy.tsv", "Gene_catalog/rep_clusters.tsv",
+            "Gene_catalog/rep_contigs_taxonomy_krona.html", "Gene_catalog/rep_genes_taxonomy.tsv",
             "Gene_catalog/rep_genes_taxonomy_krona.html"
 
 rule unzip_and_check_ind_contigs_files:
     input:  config["path_to_ind_assembly_list"]
-    output: temp(expand("Ind_assembly_contigs_temp/{s}.contigs.fna", s=names))
+    output: temp(expand(config["tmp_dir"]+"/Ind_assembly_contigs_temp/{s}.contigs.fna", s=names))
+    params: config["tmp_dir"]+"/Ind_assembly_contigs_temp"
     message: "Reading Ind-assembly contigs"
     shell: """
               cat {input} | while read line
@@ -37,9 +48,9 @@ rule unzip_and_check_ind_contigs_files:
                     f=$(echo $line | cut -d "," -f2)
                     if [[ -s "$f" ]]; then
                         if [[ "$f" =~ \.gz$ ]]; then
-                            gunzip -cd $f | sed s/">"/">$s::"/ > Ind_assembly_contigs_temp/$s.contigs.fna
+                            gunzip -cd $f | sed s/">"/">$s::"/ > {params}/$s.contigs.fna
                         else
-                            cat $f | sed s/">"/">$s::"/ > Ind_assembly_contigs_temp/$s.contigs.fna
+                            cat $f | sed s/">"/">$s::"/ > {params}/$s.contigs.fna
                         fi
                     else
                         echo "ERROR: $f doesn't exists or is empty"
@@ -49,7 +60,7 @@ rule unzip_and_check_ind_contigs_files:
            """
 
 rule ind_proteins:
-    input:  "Ind_assembly_contigs_temp/{s}.contigs.fna"
+    input:  config["tmp_dir"]+"/Ind_assembly_contigs_temp/{s}.contigs.fna"
     output: p="Ind_assembly_dir/{s}.faa.gz",
             g="Ind_assembly_dir/{s}.fna.gz",
             f="Ind_assembly_dir/{s}.gff.gz"
@@ -67,9 +78,9 @@ rule ind_proteins:
 
 rule co_in_chunks:
     input: config["path_to_co_assembly_contigs"]
-    output: temp(dynamic("Co_assembly_dir_temp/{cunk}_co_assembly_contig.fasta"))
+    output: temp(expand(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly_contig.fasta", chunk=list(range(0,chunks)) ))
     message: "Co-assembly contigs in chuncks"
-    params: int(config["threads"])
+    params: t=chunks, f=config["tmp_dir"]+"/Co_assembly_dir_temp", p="_co_assembly_contig.fasta"
     threads: 1
     shell:  """
                 if [[ {input} =~ \.gz$ ]]; then
@@ -77,20 +88,20 @@ rule co_in_chunks:
                 else
                     n=$(grep -c ">" {input})
                 fi
-                python src/split_co_assembly.py -i {input} -c {params} -n $n -o Co_assembly_dir_temp
+                python src/split_fasta.py -i {input} -c {params.t} -n $n -o {params.f} -p {params.p}
             """
 
 
 rule co_proteins_chunck:
-    input: "Co_assembly_dir_temp/{cunk}_co_assembly_contig.fasta"
-    output: p=temp("Co_assembly_dir_temp/{cunk}_co_assembly.faa.gz"),
-            g=temp("Co_assembly_dir_temp/{cunk}_co_assembly.fna.gz"),
-            f=temp("Co_assembly_dir_temp/{cunk}_co_assembly.gff.gz")
+    input: config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly_contig.fasta"
+    output: p=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.faa.gz"),
+            g=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.fna.gz"),
+            f=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.gff.gz")
     message: "Gene calling on Co-assembly contigs chunk"
-    params: pm=config["prodigal_params"], t="Co_assembly_dir_temp/{cunk}_input_prodigal_tmp.fasta",
-            p=temp("Co_assembly_dir_temp/{cunk}_co_assembly.faa"),
-            g=temp("Co_assembly_dir_temp/{cunk}_co_assembly.fna"),
-            f=temp("Co_assembly_dir_temp/{cunk}_co_assembly.gff")
+    params: pm=config["prodigal_params"], t=config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_input_prodigal_tmp.fasta",
+            p=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.faa"),
+            g=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.fna"),
+            f=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.gff")
     conda: "mix_gc_env"
     threads: 1
     shell:  """
@@ -101,9 +112,9 @@ rule co_proteins_chunck:
             """
 
 rule merge_gene_calling_co_assembly:
-    input:  p=dynamic("Co_assembly_dir_temp/{cunk}_co_assembly.faa.gz"),
-            g=dynamic("Co_assembly_dir_temp/{cunk}_co_assembly.fna.gz"),
-            f=dynamic("Co_assembly_dir_temp/{cunk}_co_assembly.gff.gz")
+    input:  p=expand(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.faa.gz", chunk=list(range(0,chunks)) ),
+            g=expand(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.fna.gz", chunk=list(range(0,chunks)) ),
+            f=expand(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.gff.gz", chunk=list(range(0,chunks)) )
     output: p="Co_assembly_dir/co_assembly.faa.gz",
             g="Co_assembly_dir/co_assembly.fna.gz",
             f="Co_assembly_dir/co_assembly.gff.gz"
@@ -180,24 +191,43 @@ rule rfam_sto:
               gunzip Rfam_db/Rfam.seed.gz
             fi
             grep -v '#=GC' Rfam_db/Rfam.seed | grep -v 'Binary file Rfam.seed matches' > {params}
-            hmmbuild  --dna --cpu {threads} {output} {params} > /dev/null
+            hmmbuild --dna --cpu {threads} {output} {params} > /dev/null
           """
 
-rule rfam:
-    input: g="Cluster/mix_rep_genes.fna", r="Rfam_db/Rfam.hmm"
-    output: "annotation/rfam/mix_RFAM.tblout"
+rule mix_in_chunks:
+    input: "Cluster/mix_rep_genes.fna"
+    output: temp(expand("Cluster/{chunk}_mix_rep_genes.fna", chunk=list(range(0,chunks )) ) )
+    message: "Mix-assembly genes in chuncks for annotation"
+    params: t=chunks, p="_mix_rep_genes.fna"
+    threads: 1
+    shell:  """
+                n=$(grep -c ">" {input})
+                python src/split_fasta.py -i {input} -c {params.t} -n $n -o Cluster -p {params.p}
+            """
+
+rule rfam_chunck:
+    input: g="Cluster/{chunk}_mix_rep_genes.fna", r="Rfam_db/Rfam.hmm"
+    output: "annotation/rfam/{chunk}_mix_RFAM.tblout"
     threads: config["threads"]
     conda: "mix_gc_env"
-    message: "rfam on Mix-assembly representative genes"
-    shell: """
+    message: "rfam on Mix-assembly representative genes chunck"
+    shell:  """
                 if [[ ! -s {input.r}.h3i ]]; then
                     hmmpress {input.r}
                 fi
                     nhmmscan --noali --cut_ga --cpu {threads} --tblout {output} {input.r} {input.g} > /dev/null
             """
 
+rule rfam_list:
+    input: expand("annotation/rfam/{chunk}_mix_RFAM.tblout", chunk=list(range(0,chunks)) )
+    output: "annotation/rfam/list_rRNA_genes_in_mix.txt"
+    message: "Final list of genes with rRNA annotation"
+    shell:  """
+                bash src/get_final_list.sh
+            """
+
 rule remove_false_positive:
-  input: r="annotation/rfam/mix_RFAM.tblout",
+  input: f="annotation/rfam/list_rRNA_genes_in_mix.txt",
          p="Cluster/mix_rep_seq.fasta",
          g="Cluster/mix_rep_genes.fna"
   output: p="Gene_catalog/rep_proteins.faa",
@@ -206,15 +236,23 @@ rule remove_false_positive:
   message: "Removing false positive predicted genes"
   threads: 1
   shell:  """
-                if [ ! -s list_rRNA_genes_in_mix.txt ]; then
-                    grep 'rRNA' {input.r} | awk '{{print $3}}' > list_rRNA_genes_in_mix.txt
-                fi
-                python src/clean_mix_assembly_genes.py -g {input.g} -p {input.p} -m {params.m} -o {output.g} -u {output.p}
+                python src/clean_mix_assembly_genes.py -g {input.g} -p {input.p} -m {params.m} -f {input.f} -o {output.g} -u {output.p}
           """
 
-rule pfam:
+rule proteins_in_chunks:
     input: "Gene_catalog/rep_proteins.faa"
-    output: "annotation/pfam/mix_assembly_pfam.tsv"
+    output: temp(expand(config["tmp_dir"]+"/Proteins/{chunk}_rep_proteins.faa", chunk=list(range(0,chunks)) ))
+    message: "Mix-assembly proteins in chuncks for annotation"
+    params: t=chunks, p="_rep_proteins.faa", o=config["tmp_dir"]+"/Proteins"
+    threads: 1
+    shell:  """
+                n=$(grep -c ">" {input})
+                python src/split_fasta.py -i {input} -c {params.t} -n $n -o {params.o} -p {params.p}
+            """
+
+rule pfam:
+    input: config["tmp_dir"]+"/Proteins/{chunk}_rep_proteins.faa"
+    output: "annotation/pfam/{chunk}_mix_assembly_pfam.tsv"
     params: i=config["path_pfam_db"]
     threads: config["threads"]
     conda: "mix_gc_env"
@@ -225,15 +263,13 @@ rule pfam:
                     gunzip Pfam-A.hmm.gz
                     mv Pfam-A.hmm {params.i}
                 fi
-                if [[ ! -s {params.i}.h3i ]]; then
-                    hmmpress {params.i}
-                fi
-                hmmscan --noali --cut_ga --cpu {threads} --tblout {output} {params.i} {input} > /dev/null
+                hmmsearch --noali --cut_ga --cpu {threads} --tblout {output} {params.i} {input} > /dev/null
            """
 
+
 rule dbcan:
-    input: "Gene_catalog/rep_proteins.faa"
-    output: "annotation/dbcan/mix_assembly_dbcan.tsv"
+    input: config["tmp_dir"]+"/Proteins/{chunk}_rep_proteins.faa"
+    output: "annotation/dbcan/{chunk}_mix_assembly_dbcan.tsv"
     params: i=config["path_dbcan_db"]
     threads: config["threads"]
     conda: "mix_gc_env"
@@ -243,28 +279,42 @@ rule dbcan:
                         wget https://bcb.unl.edu/dbCAN2/download/Databases/dbCAN-old@UGA/dbCAN-fam-HMMs.txt
                         mv dbCAN-fam-HMMs.txt {params.i}
                 fi
-                if [[ ! -s {params.i}.h3i ]]; then
-                    hmmpress {params.i}
-                fi
-                hmmscan --noali --cpu {threads} --tblout {output} {params.i} {input} > /dev/null
+                hmmsearch --noali --cpu {threads} --tblout {output} {params.i} {input} > /dev/null
             """
 
 rule eggnog:
-    input: "Gene_catalog/rep_proteins.faa"
-    output: "annotation/eggnog/rep_proteins.emapper.annotations"
-    params: db=config["path_to_eggnog_db"]
+    input: config["tmp_dir"]+"/Proteins/{chunk}_rep_proteins.faa"
+    output: "annotation/eggnog/{chunk}_rep_proteins.emapper.annotations"
+    params: db=config["path_to_eggnog_db"],
+            h="annotation/eggnog/{chunk}_rep_proteins.emapper.hits",
+            o="{chunk}_rep_proteins"
     conda: "eggnog_mapper_env"
     threads: config["threads"]
     message: "Eggnog annotation"
     shell:  """
-                filehit=annotation/eggnog/rep_proteins.emapper.hits
+                filehit={params.h}
                 if [[ -s $filehit ]]; then
                     echo "INFO: $filehit is present, annotation will be resumed"
-                    emapper.py -i {input} -o rep_proteins --output_dir annotation/eggnog --cpu {threads} --data_dir {params.db} -m diamond --resume
+                    emapper.py -i {input} -o {params.o} --output_dir annotation/eggnog --cpu {threads} --data_dir {params.db} -m diamond --resume
                 else
-                    emapper.py -i {input} -o rep_proteins --output_dir annotation/eggnog --cpu {threads} --data_dir {params.db} -m diamond
+                    emapper.py -i {input} -o {params.o} --output_dir annotation/eggnog --cpu {threads} --data_dir {params.db} -m diamond
                 fi
             """
+
+rule conca_annot_tables:
+    input:  d=expand("annotation/dbcan/{chunk}_mix_assembly_dbcan.tsv",chunk=list(range(0,chunks)) ),
+            p=expand("annotation/pfam/{chunk}_mix_assembly_pfam.tsv",chunk=list(range(0,chunks)) ),
+            e=expand("annotation/eggnog/{chunk}_rep_proteins.emapper.annotations", chunk=list(range(0,chunks)) )
+    output: d="annotation/dbcan/mix_assembly_dbcan.tsv", p="annotation/pfam/mix_assembly_pfam.tsv",
+            e="annotation/eggnog/rep_proteins.emapper.annotations"
+    message: "Concatenating annotation - chunck tables"
+    threads: 1
+    shell:  """
+                cat {input.d} | grep -v "^#" > {output.d}
+                cat {input.p} | grep -v "^#" > {output.p}
+                cat {input.e} | grep -v "^#" > {output.e}
+            """
+
 
 rule annotation_table:
     input:  d="annotation/dbcan/mix_assembly_dbcan.tsv", p="annotation/pfam/mix_assembly_pfam.tsv",
@@ -323,7 +373,7 @@ if config["taxonomy_DB"] == "gtdb":
       output: db="mmseqs2DBs/GTDB/SeqDB", h="mmseqs2DBs/GTDB/SeqDB_h"
       message: "Creating GTDB mmseqs2DBs (step 3/4)"
       conda: "mix_gc_env"
-      shell: "mmseqs createdb {input.i} {output.db}"
+      shell: "mmseqs createdb {input.i} {output.db} -v 0"
 
     rule taxdb:
       input:  "mmseqs2DBs/GTDB/SeqDB"
@@ -333,7 +383,7 @@ if config["taxonomy_DB"] == "gtdb":
       conda: "mix_gc_env"
       shell:  """
                 mkdir -p {params.t1}
-                mmseqs createtaxdb {input} {params.t1} --ncbi-tax-dump {params.t2} --tax-mapping-file {params.t3}
+                mmseqs createtaxdb {input} {params.t1} --ncbi-tax-dump {params.t2} --tax-mapping-file {params.t3} -v 0
               """
 
     rule taxonomy_gtdb:
@@ -351,7 +401,6 @@ if config["taxonomy_DB"] == "gtdb":
                 mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
               """
 
-
 rule download_create_uniprotDB:
   output: db="mmseqs2DBs/Uniprot/SeqDB",
           h="mmseqs2DBs/Uniprot/SeqDB_h",
@@ -363,7 +412,7 @@ rule download_create_uniprotDB:
   conda: "mix_gc_env"
   shell:  """
             mkdir -p {params.t}
-            mmseqs databases {params.type} {output.db} {params.t} --threads {threads}
+            mmseqs databases {params.type} {output.db} {params.t} --threads {threads} -v 0
           """
 
 if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == False :
@@ -383,9 +432,10 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Fal
                         mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
                 """
 
+
    rule taxonomy_uniport_tsv:
         input: "Taxonomy/Mix_easy_tax_lca.tsv"
-        output: "Gene_catalog/rep_genes_taxonomy.tsv"
+        output: "Gene_catalog/rep_contigs_taxonomy.tsv"
         threads: 1
         message: "Parsing taxonomy assignments"
         shell: "python src/parse_results_tsv.py -i {input} -o {output}"
@@ -539,7 +589,7 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
               cd {params.w}
             '''
 
-  rule taxonomy_Bact:  
+  rule taxonomy_Bact:
     input:  c="Gene_catalog/rep_contigs.fasta.gz",
             db="mmseqs2DBs/Uniprot_Bact/SeqDB",
             a="mmseqs2DBs/Uniprot_Bact/SeqDB_mapping",
@@ -560,7 +610,7 @@ if config["taxonomy_DB"] == "gtdb":
     input:  "Taxonomy_gtdb/Mix_easy_tax_lca.tsv",
             "Taxonomy_Virus/Mix_easy_tax_lca.tsv",
             "Taxonomy_Euka/Mix_easy_tax_lca.tsv"
-    output: "Gene_catalog/rep_genes_taxonomy.tsv"
+    output: "Gene_catalog/rep_contigs_taxonomy.tsv"
     params: i="Taxonomy_gtdb/Mix_easy_tax_lca.tsv,Taxonomy_Virus/Mix_easy_tax_lca.tsv,Taxonomy_Euka/Mix_easy_tax_lca.tsv"
     threads: 1
     message: "Merging Taxonomy assignment - GTDB/Uniprot"
@@ -572,7 +622,7 @@ elif config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == T
             "Taxonomy_arch/Mix_easy_tax_lca.tsv",
             "Taxonomy_Virus/Mix_easy_tax_lca.tsv",
             "Taxonomy_Euka/Mix_easy_tax_lca.tsv"
-    output: "Gene_catalog/rep_genes_taxonomy.tsv"
+    output: "Gene_catalog/rep_contigs_taxonomy.tsv"
     params: i="Taxonomy_Bact/Mix_easy_tax_lca.tsv,Taxonomy_arch/Mix_easy_tax_lca.tsv,Taxonomy_Virus/Mix_easy_tax_lca.tsv,Taxonomy_Euka/Mix_easy_tax_lca.tsv"
     threads: 1
     message: "Merging Taxonomy assignment - Uniprot"
@@ -580,15 +630,27 @@ elif config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == T
 
 
 rule krona:
-   input: "Gene_catalog/rep_genes_taxonomy.tsv"
-   output: "Gene_catalog/rep_genes_taxonomy_krona.txt"
+   input: "Gene_catalog/rep_contigs_taxonomy.tsv"
+   output: "Gene_catalog/rep_contigs_taxonomy_krona.txt"
    shell: "python src/krona_clean_results_tsv.py -i {input} -o {output}"
 
 rule html:
+   input: "Gene_catalog/rep_contigs_taxonomy_krona.txt"
+   output: "Gene_catalog/rep_contigs_taxonomy_krona.html"
+   conda: "mix_gc_env"
+   shell: "ktImportText {input} -o {output}"
+
+rule krona_genes:
+   input: p="Gene_catalog/rep_proteins.faa",t="Gene_catalog/rep_contigs_taxonomy.tsv"
+   output: k="Gene_catalog/rep_genes_taxonomy_krona.txt", o="Gene_catalog/rep_genes_taxonomy.tsv"
+   shell: "python src/from_contigs_to_genes_taxonomy.py -p {input.p} -t {input.t} -o {output.o} -k {output.k}"
+
+rule html_genes:
    input: "Gene_catalog/rep_genes_taxonomy_krona.txt"
    output: "Gene_catalog/rep_genes_taxonomy_krona.html"
    conda: "mix_gc_env"
    shell: "ktImportText {input} -o {output}"
+
 
 rule table_rep_clusters:
     input: i="Cluster/mix_cluster.tsv", r="Gene_catalog/rep_proteins.faa"
