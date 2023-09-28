@@ -71,7 +71,7 @@
 
 
 
-			Save modifications.
+			Save modifications (CTRL +x, y).
 
 	3. Run the pipeline:
 
@@ -79,6 +79,7 @@
 			snakemake -s mix_gc.smk --use-conda -j 20
 
 	4.	Gene_catalog is the main output folder, containing the following files:
+ 
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
    
 		rep_annotation.tsv
