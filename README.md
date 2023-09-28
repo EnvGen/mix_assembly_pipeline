@@ -79,16 +79,16 @@
 			snakemake -s mix_gc.smk --use-conda -j 20
 
 	4.	Gene_catalog is the main output folder, containing the following files:
-
-
-				rep_annotation.tsv
-				rep_clusters.tsv
-				rep_contigs_taxonomy_krona.html
-				rep_contigs_taxonomy_krona.txt
-				rep_contigs_taxonomy.tsv
-				rep_contigs.fasta.gz
-				rep_genes_taxonomy_krona.html
-				rep_genes_taxonomy_krona.txt
-				rep_genes_taxonomy.tsv
-				rep_genes.fna
-				rep_proteins.faa
+ 		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
+   
+		rep_annotation.tsv
+		rep_clusters.tsv
+		rep_contigs_taxonomy_krona.html
+		rep_contigs_taxonomy_krona.txt
+		rep_contigs_taxonomy.tsv
+		rep_contigs.fasta.gz
+		rep_genes_taxonomy_krona.html
+		rep_genes_taxonomy_krona.txt
+		rep_genes_taxonomy.tsv
+		rep_genes.fna
+		rep_proteins.faa
