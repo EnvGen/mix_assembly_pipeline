@@ -1,2 +1,5 @@
-12,Raw_data/12.fa.gz
-32,Raw_data/32.fa.gz
+sample1,Raw_data_dir/sample1.fa.gz
+sample2,Folder/sample2.fasta
+sample3,Other_Folder/assembly_sample3_run_21.fna.gz
+sample4,Raw_data_dir/sample4.fna
+sample_5,Raw_data_dir/sample_5.fna
