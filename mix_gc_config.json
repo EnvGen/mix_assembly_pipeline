@@ -1,11 +1,11 @@
 {"work_dir": "/abs/path/to/mix_gc_pipeline",
 "path_to_ind_assembly_list": "Ind_contigs_list.csv",
-"path_to_co_assembly_contigs": "/abs/path/to/co_assembly.contigs.fa.gz",
+"path_to_co_assembly_contigs": "/abs/path/to/co_assembly_contigs.fa.gz",
 "prodigal_params": "-p meta -q",
 "cluster_params":"-c 0.95 --min-seq-id 0.95 --cov-mode 1 --cluster-mode 2",
 "list_specific_genes_to_remove": "None",
 "tmp_dir":"TMP_dir",
-"path_to_eggnog_db": "Path/to/eggnog_db/data/",
+"path_to_eggnog_db": "/abs/path/to/eggnog_db/data",
 "path_dbcan_db":"dbcan_db/dbCAN-fam-HMMs.txt",
 "path_pfam_db":"Pfam_db/Pfam-A.hmm",
 "taxonomy_DB": "uniprot",
@@ -18,7 +18,9 @@
             "uniprot_db_type":"UniRef90",
             "by_chuncks": True,
             },
-"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.4 -s 1 --report-mode 1",
+"mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1",
+"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
 "threads":20,
-"n_chuncks_annotations": 20
+"n_chuncks_annotations": 20,
+"n_chuncks_taxonomy": 50
 }

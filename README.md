@@ -22,7 +22,7 @@
 # Usage
 
 	1. Prepare your Ind_contigs_list.csv file: one line per sample following this format: <sample name>,<path to assembly file .fasta or fasta.gz>
- 		Files can be compressed (only .gz). Make sure samples names nor contigs header use "::", e.g., >This_is_not_allowed::in_contigs_headers, No_::_in_sample_name 
+ 		Files can be compressed (only .gz). Make sure samples names nor contigs header use "::", e.g., >This_is_not_allowed::in_contigs_headers, No_::_in_sample_name
 
 
 	2. Modify config file:
@@ -48,7 +48,7 @@
 			"list_specific_genes_to_remove": "None", #in case you have a list of genes that you specifically want to remove. File with one gene name per line
 			"path_to_eggnog_db": "abs/path/to/eggnog_db/data",
 			"path_dbcan_db":"dbcan_db/dbCAN-fam-HMMs.txt", #It not available the pipeline will download it
-			"path_pfam_db":"/Users/luisdelgado/Documents/Mix_assembly_pipeline/Pfam_db/Pfam-A.hmm", ##It not available the pipeline will download it
+			"path_pfam_db":"Pfam_db/Pfam-A.hmm", ##It not available the pipeline will download it
 
 			Taxonomy assignment:
 			"taxonomy_DB": "uniprot", #options gtdb, uniprot - The pipeline will download the databases. GTDB works only on prokaryotes, you need to include a Uniprot database here after for the taxonomy affiliation of other Kindoms.  
@@ -61,13 +61,16 @@
 			            "uniprot_db_type":"UniRef90", #. Always provide an Uniprot database. See mmseqs2 manual for more Uniprot databases (https://mmseqs.com/latest/userguide.pdf)
 			            "by_chuncks": True,  #Options: True, False. If True, it splits the taxonomy database into Kindoms to reduce the RAM requirements
 			            },
-			"mmseqs_taxonomy_params":"--lca-mode 4 --orf-filter 0 --tax-lineage 1 --filter-hits 1 -v 0 --min-seq-id 0.4 -s 1 --report-mode 1",
+			"mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1",
+			"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
 
 			Threads:
 			"threads":20 - number of cpus to be used
 
-			To easy the functional annotation steps, the process can be run by chunks
-			"n_chuncks_annotations": 20 - Number of chuncks. If higher than number of threads, it will be set to max number of cpus available.
+			To easy the functional annotation and taxonomy affilitaion steps, the process can be run by chunks
+			"n_chuncks_annotations": 20 - Number of chuncks.
+
+			"n_chuncks_taxonomy": 20
 
 
 
@@ -75,13 +78,37 @@
 
 	3. Run the pipeline:
 
+			Using one node:
+
 			conda activate snakemake_env
-			snakemake -s mix_gc.smk --use-conda -j 20
+			snakemake -s mix_gc.smk --use-conda -j <number of cpus to be used>
+
+
+			If you want to run the pipeline using several nodes in a HPC:
+
+			a. Download cookiecutter:
+
+			conda create -n cookiecutter_env -c conda-forge cookiecutter -y
+			conda activate  cookiecutter_env
+
+			b. Create the profile directory and answer the questions:
+
+			profile_dir="/abs/path/to/mix_gc_pipeline/.config/snakemake"
+			mkdir -p "$profile_dir"
+			template="gh:Snakemake-Profiles/slurm"
+			cookiecutter --output-dir "$profile_dir" "$template"
+			conda deactivate
+
+			c. Run the pipeline:
+
+			conda activate snakemake_env
+			snakemake --profile /abs/path/to/mix_gc_pipeline/.config/snakemake/<name_of_your_slurm_profile_file> -s mix_gc.smk
+
 
 	4.	Gene_catalog is the main output folder, containing the following files:
- 
+
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
-   
+
 		rep_annotation.tsv
 		rep_clusters.tsv
 		rep_contigs_taxonomy_krona.html

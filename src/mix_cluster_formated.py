@@ -38,6 +38,5 @@ with open(args.i,"r") as fin:
 #print(rep_genes)
 #print(dic_rep)
 with open(args.o, "w") as fout:
-    print("#Rep_genes\tGenes_in_cluster", file=fout)
     for r,l in dic_rep.items():
         print("{}\t{}".format(r,",".join(l)), file=fout)

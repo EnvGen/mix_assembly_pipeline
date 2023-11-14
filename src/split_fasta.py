@@ -27,11 +27,23 @@ def list_of_seqs_in_files():
     if counter_x != 0:
         myList2 = [ seqs_file_x  for i in range(counter_x) ]
         myList1.extend(myList2)
-        print("INFO: File has {} sequences, and will be splited in {} files with {} sequences and {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y, counter_x, seqs_file_x))
-    else:
-        print("INFO: File has {} sequences, and will be splited in {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y))
+        if seqs_file_y != 0:
+            texto="INFO: File has {} sequences, and will be splited in {} files with {} sequences and {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y, counter_x, seqs_file_x)
+            #print("INFO: File has {} sequences, and will be splited in {} files with {} sequences and {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y, counter_x, seqs_file_x))
+        else:
+            texto="INFO: File has {} sequences, and will be splited in {} files with {} sequences".format(int(args.n),counter_x, seqs_file_x)
+            #print("INFO: File has {} sequences, and will be splited in {} files with {} sequences".format(int(args.n),counter_x, seqs_file_x))
+    elif seqs_file_y != 0:
+        texto="INFO: File has {} sequences, and will be splited in {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y)
+        #print("INFO: File has {} sequences, and will be splited in {} files with {} sequences".format(int(args.n),counter_y, seqs_file_y))
 
-    return(myList1)
+    nonempty_files=[f for f in myList1 if f != 0 ]
+    if len(nonempty_files) == int(args.c):
+        print(texto)
+        return(myList1)
+    else:
+        print("Reduce the number of chuncks to "+str(len(nonempty_files)))
+        exit()
 
 if not os.path.exists(args.o):
     os.makedirs(args.o)
@@ -41,6 +53,8 @@ seqs_file=list_of_seqs_in_files()
 counter=0
 Nseqs=0
 chunk_files={}
+
+
 
 if args.i.endswith("gz"):
   with gzip.open(args.i, 'rb') as input_file:
@@ -92,3 +106,4 @@ else:
         with open(os.path.join(args.o,str(counter)+args.p), "w") as fout:
             for ids,cont in chunk_files.items():
                 print("{}\n{}".format(ids,cont), file=fout)
+

@@ -24,12 +24,13 @@ def contigs_taxonomy(input_file):
             if LS[3] != "unclassified":
                 contig_taxo[LS[0]]=LS[8] #0 contig name, 8 taxonomy affiliation
             else:
-                contig_taxo[LS[0]]=LS[3] # 3 unclassified
+                contig_taxo[LS[0]]="unclassified" #LS[3] # 3 unclassified
     return(contig_taxo)
 
 
 
 C_taxo=contigs_taxonomy(args.t)
+
 
 with open(args.p, "r") as fin, open(args.o, "w") as fout, open(args.k, "w") as foutk:
     for line in fin:
@@ -37,8 +38,17 @@ with open(args.p, "r") as fin, open(args.o, "w") as fout, open(args.k, "w") as f
         if line.startswith(">"):
             gene=line.split()[0][1:]
             contig="_".join(gene.split("_")[:-1])
-            taxo=C_taxo[contig]
-            taxo_list=taxo.split(";")
-            taxo_tab="\t".join([t for t in taxo_list if t != "-_cellular organisms"])
+            if contig in C_taxo:
+                taxo=C_taxo[contig]
+                if "root" in taxo:
+                    taxo="unclassified"
+                    taxo_tab="unclassified"
+                else:
+                    taxo_list=taxo.split(";")
+                    taxo_tab="\t".join([t for t in taxo_list if t != "-_cellular organisms"])
+            else:
+                #print("set --orf-filter 0 in config file 'mmseqs_taxonomy_params' to obtain a taxonomy affiliation of contig: {}".format(contig))
+                taxo="unclassified"
+                taxo_tab="unclassified"
             print("{}\t{}".format(gene, taxo), file=fout)
             print("{}\t{}".format(1, taxo_tab), file=foutk)

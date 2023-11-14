@@ -24,14 +24,16 @@ def n_chuncks(intial_op, cps):
         chunks=intial_op
     return(chunks)
 
-chunks=n_chuncks(int(config["n_chuncks_annotations"]),int(config["threads"]) )
+chunks=int(config["n_chuncks_annotations"])#n_chuncks(int(config["n_chuncks_annotations"]),int(config["threads"]) )
+chunkst=int(config["n_chuncks_taxonomy"]) #n_chuncks(int(config["n_chuncks_taxonomy"]),int(config["threads"]) )
+
 
 names, path_files = contigs_ind_assemblies(config["path_to_ind_assembly_list"])
 
 
 rule all:
     input:  "Gene_catalog/rep_proteins.faa", "Gene_catalog/rep_genes.fna",
-            "Gene_catalog/rep_annotation.tsv", "Gene_catalog/rep_contigs.fasta.gz",
+            "Gene_catalog/rep_annotation.tsv", "Gene_catalog/rep_contigs.fasta",
             "Gene_catalog/rep_contigs_taxonomy.tsv", "Gene_catalog/rep_clusters.tsv",
             "Gene_catalog/rep_contigs_taxonomy_krona.html", "Gene_catalog/rep_genes_taxonomy.tsv",
             "Gene_catalog/rep_genes_taxonomy_krona.html"
@@ -40,6 +42,9 @@ rule unzip_and_check_ind_contigs_files:
     input:  config["path_to_ind_assembly_list"]
     output: temp(expand(config["tmp_dir"]+"/Ind_assembly_contigs_temp/{s}.contigs.fna", s=names))
     params: config["tmp_dir"]+"/Ind_assembly_contigs_temp"
+    threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
     message: "Reading Ind-assembly contigs"
     shell: """
               cat {input} | while read line
@@ -71,6 +76,8 @@ rule ind_proteins:
             f="Ind_assembly_dir/{s}.gff"
     conda: "mix_gc_env"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 8, mem_mb=6400
     shell:  """
                 prodigal -i {input} -a {params.p} -d {params.g} -f gff -o {params.f} {params.pm}
                 gzip {params.p} {params.g} {params.f}
@@ -82,6 +89,8 @@ rule co_in_chunks:
     message: "Co-assembly contigs in chuncks"
     params: t=chunks, f=config["tmp_dir"]+"/Co_assembly_dir_temp", p="_co_assembly_contig.fasta"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
     shell:  """
                 if [[ {input} =~ \.gz$ ]]; then
                     n=$(gunzip -cd {input} | grep -c ">")
@@ -104,6 +113,8 @@ rule co_proteins_chunck:
             f=temp(config["tmp_dir"]+"/Co_assembly_dir_temp/{chunk}_co_assembly.gff")
     conda: "mix_gc_env"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 9, mem_mb=6400
     shell:  """
                cat {input} | sed s/">"/">CO::"/ > {params.t}
                prodigal -i {params.t} -a {params.p} -d {params.g} -f gff -o {params.f} {params.pm}
@@ -120,6 +131,8 @@ rule merge_gene_calling_co_assembly:
             f="Co_assembly_dir/co_assembly.gff.gz"
     message: "Concatenating gene calling co-assembly files"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 24, mem_mb=6400
     shell:  """
                cat {input.p} > {output.p}
                cat {input.g} > {output.g}
@@ -137,10 +150,12 @@ rule cluster_ind:
             pm=config["cluster_params"]
     conda: "mix_gc_env"
     threads: config["threads"]
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 36, mem_mb=128000
     shell:  """
               mkdir -p {params.tmp}
               mmseqs easy-cluster {input} {params.o} {params.tmp} {params.pm} --threads {threads} -v 0
-              gzip {params.uz}
+              pigz {params.uz}
             """
 
 
@@ -153,6 +168,8 @@ rule cluster_mix:
             pm=config["cluster_params"]
     conda: "mix_gc_env"
     threads: config["threads"]
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 36, mem_mb=128000
     shell:  """
               mkdir -p {params.tmp}
               mmseqs easy-cluster {input} {params.o} {params.tmp} {params.pm} --threads {threads} -v 0
@@ -161,6 +178,9 @@ rule cluster_mix:
 rule ind_rep_genes:
   input: i=expand("Ind_assembly_dir/{s}.fna.gz", s=names), r="Cluster/ind_assembly_rep_seq.fasta.gz"
   output: "Cluster/ind_assembly_rep_seq.fna.gz"
+  threads: 1
+  resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
   message: "Printing out Ind-assembly representative genes"
   params: i="Ind_assembly_dir"
   shell:  """
@@ -175,6 +195,8 @@ rule Mix_genes:
     output: "Cluster/mix_rep_genes.fna"
     message: "Printing out Mix-assembly representative genes"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
     shell:  """
               python src/from_faa_gzip_to_fna_mix_assembly.py -i {input.i} -c {input.c} -m {input.m} -o {output}
             """
@@ -183,6 +205,8 @@ rule rfam_sto:
   output: "Rfam_db/Rfam.hmm"
   params: "Rfam_db/RFAM.sto"
   threads: config["threads"]
+  resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
   message: "Downloading Rfam database"
   conda: "mix_gc_env"
   shell:  """
@@ -194,12 +218,15 @@ rule rfam_sto:
             hmmbuild --dna --cpu {threads} {output} {params} > /dev/null
           """
 
+
 rule mix_in_chunks:
     input: "Cluster/mix_rep_genes.fna"
     output: temp(expand("Cluster/{chunk}_mix_rep_genes.fna", chunk=list(range(0,chunks )) ) )
     message: "Mix-assembly genes in chuncks for annotation"
     params: t=chunks, p="_mix_rep_genes.fna"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 6, mem_mb=6400
     shell:  """
                 n=$(grep -c ">" {input})
                 python src/split_fasta.py -i {input} -c {params.t} -n $n -o Cluster -p {params.p}
@@ -210,6 +237,8 @@ rule rfam_chunck:
     output: "annotation/rfam/{chunk}_mix_RFAM.tblout"
     threads: config["threads"]
     conda: "mix_gc_env"
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 240, mem_mb=128000
     message: "rfam on Mix-assembly representative genes chunck"
     shell:  """
                 if [[ ! -s {input.r}.h3i ]]; then
@@ -221,6 +250,9 @@ rule rfam_chunck:
 rule rfam_list:
     input: expand("annotation/rfam/{chunk}_mix_RFAM.tblout", chunk=list(range(0,chunks)) )
     output: "annotation/rfam/list_rRNA_genes_in_mix.txt"
+    threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 24, mem_mb=6400
     message: "Final list of genes with rRNA annotation"
     shell:  """
                 bash src/get_final_list.sh
@@ -235,6 +267,8 @@ rule remove_false_positive:
   params: m=config["list_specific_genes_to_remove"]
   message: "Removing false positive predicted genes"
   threads: 1
+  resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 96, mem_mb=6400
   shell:  """
                 python src/clean_mix_assembly_genes.py -g {input.g} -p {input.p} -m {params.m} -f {input.f} -o {output.g} -u {output.p}
           """
@@ -245,6 +279,8 @@ rule proteins_in_chunks:
     message: "Mix-assembly proteins in chuncks for annotation"
     params: t=chunks, p="_rep_proteins.faa", o=config["tmp_dir"]+"/Proteins"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
     shell:  """
                 n=$(grep -c ">" {input})
                 python src/split_fasta.py -i {input} -c {params.t} -n $n -o {params.o} -p {params.p}
@@ -256,12 +292,14 @@ rule pfam:
     params: i=config["path_pfam_db"]
     threads: config["threads"]
     conda: "mix_gc_env"
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 120, mem_mb=128000
     message: "Pfam annotation"
     shell: """
                 if [[ ! -s {params.i} ]]; then
-                    wget https://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz
-                    gunzip Pfam-A.hmm.gz
-                    mv Pfam-A.hmm {params.i}
+                    DIR="$(dirname "${{params.i}}")"
+                    wget https://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz -P $DIR
+                    gunzip $DIR/Pfam-A.hmm.gz
                 fi
                 hmmsearch --noali --cut_ga --cpu {threads} --tblout {output} {params.i} {input} > /dev/null
            """
@@ -273,14 +311,18 @@ rule dbcan:
     params: i=config["path_dbcan_db"]
     threads: config["threads"]
     conda: "mix_gc_env"
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 48, mem_mb=128000
     message: "dbcan annotation"
     shell:  """
                 if [[ ! -s {params.i} ]]; then
-                        wget https://bcb.unl.edu/dbCAN2/download/Databases/dbCAN-old@UGA/dbCAN-fam-HMMs.txt
-                        mv dbCAN-fam-HMMs.txt {params.i}
+                        DIR="$(dirname "${{params.i}}")"
+                        wget https://bcb.unl.edu/dbCAN2/download/Databases/dbCAN-old@UGA/dbCAN-fam-HMMs.txt -P $DIR
+
                 fi
                 hmmsearch --noali --cpu {threads} --tblout {output} {params.i} {input} > /dev/null
             """
+
 
 rule eggnog:
     input: config["tmp_dir"]+"/Proteins/{chunk}_rep_proteins.faa"
@@ -290,6 +332,9 @@ rule eggnog:
             o="{chunk}_rep_proteins"
     conda: "eggnog_mapper_env"
     threads: config["threads"]
+    resources:
+        runtime = 60 * 240,
+        mem_mb=128000
     message: "Eggnog annotation"
     shell:  """
                 filehit={params.h}
@@ -304,37 +349,59 @@ rule eggnog:
 rule conca_annot_tables:
     input:  d=expand("annotation/dbcan/{chunk}_mix_assembly_dbcan.tsv",chunk=list(range(0,chunks)) ),
             p=expand("annotation/pfam/{chunk}_mix_assembly_pfam.tsv",chunk=list(range(0,chunks)) ),
-            e=expand("annotation/eggnog/{chunk}_rep_proteins.emapper.annotations", chunk=list(range(0,chunks)) )
+            e=expand("annotation/eggnog/{chunk}_rep_proteins.emapper.annotations", chunk=list(range(0,chunks)) ),
+            r=expand("annotation/rfam/{chunk}_mix_RFAM.tblout", chunk=list(range(0,chunks)) )
     output: d="annotation/dbcan/mix_assembly_dbcan.tsv", p="annotation/pfam/mix_assembly_pfam.tsv",
+            r="annotation/rfam/mix_assembly_rfam.tsv",
             e="annotation/eggnog/rep_proteins.emapper.annotations"
     message: "Concatenating annotation - chunck tables"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
     shell:  """
+                cat {input.r} | grep -v "^#" > {output.r}
                 cat {input.d} | grep -v "^#" > {output.d}
                 cat {input.p} | grep -v "^#" > {output.p}
                 cat {input.e} | grep -v "^#" > {output.e}
             """
 
-
 rule annotation_table:
     input:  d="annotation/dbcan/mix_assembly_dbcan.tsv", p="annotation/pfam/mix_assembly_pfam.tsv",
-            e="annotation/eggnog/rep_proteins.emapper.annotations"
+            e="annotation/eggnog/rep_proteins.emapper.annotations",
+            r="annotation/rfam/mix_assembly_rfam.tsv",
+            f="annotation/rfam/list_rRNA_genes_in_mix.txt"
     output: "Gene_catalog/rep_annotation.tsv"
     message: "Printing out Mix_assembly representative genes annotations"
     threads: 1
-    shell: "python src/merge_mix_assembly_genes_annotation_tables.py -d {input.d} -p {input.p} -e {input.e} -o {output}"
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
+    shell: "python src/merge_mix_assembly_genes_annotation_tables.py -d {input.d} -p {input.p} -r {input.r} -e {input.e} -f {input.f} -o {output}"
 
 rule mix_contigs:
     input:  m="Gene_catalog/rep_proteins.faa",
             i=path_files,
             c=config["path_to_co_assembly_contigs"]
-    output: "Gene_catalog/rep_contigs.fasta.gz"
+    output: "Gene_catalog/rep_contigs.fasta"
+    threads: config["threads"]
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 *24, mem_mb=128000
     message: "Printing out Mix_assembly contigs"
-    params: l=config["path_to_ind_assembly_list"],
-            o="Gene_catalog/rep_contigs.fasta"
+    params: l=config["path_to_ind_assembly_list"] #,o="Gene_catalog/rep_contigs.fasta"
     shell:  """
-              python src/from_fna_gzip_to_contigs_mix_assembly_fast.py -l {params.l} -c {input.c} -m {input.m} -o {params.o}
-              gzip {params.o}
+              python src/from_fna_gzip_to_contigs_mix_assembly_fast.py -l {params.l} -c {input.c} -m {input.m} -o {output}
+            """
+
+rule mix_contigs_in_chunks:
+    input: "Gene_catalog/rep_contigs.fasta"
+    output: temp(expand("Cluster/{chunkt}_mix_rep_contigs.fna" ,chunkt=list(range(0,chunkst))  ))
+    message: "Mix-assembly contigs in chuncks for taxonomy affiliation"
+    params: t=chunkst, p="_mix_rep_contigs.fna"
+    threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 6, mem_mb=6400
+    shell:  """
+                n=$( grep -c ">" {input} )
+                python src/split_fasta.py -i {input} -c {params.t} -n $n -o Cluster -p {params.p}
             """
 
 #taxonomy
@@ -343,6 +410,9 @@ if config["taxonomy_DB"] == "gtdb":
 
     rule download_gtdb_ref_proteins:
       output: d=directory(config["GTDB"]["GTDB_dir"]), b=config["GTDB"]["bact_tsv"], a=config["GTDB"]["arch_tsv"]
+      threads: 1
+      resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 10, mem_mb=6400
       message: "Downloading GTDB proteins database"
       shell:  """
                     mkdir -p GTDB_aa_db
@@ -356,6 +426,9 @@ if config["taxonomy_DB"] == "gtdb":
     rule DB_fasta:
       input: d=config["GTDB"]["GTDB_dir"], b=config["GTDB"]["bact_tsv"], a=config["GTDB"]["arch_tsv"]
       output: "mmseqs2DBs/GTDB_mmseqs2_format.fasta"
+      threads: 1
+      resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
       message: "Creating GTDB mmseqs2DBs (step 1/4)"
       shell:"python src/create_GTDB_fasta_db.py -d {input.d} -b {input.b} -a {input.a} -o {output}"
 
@@ -363,6 +436,9 @@ if config["taxonomy_DB"] == "gtdb":
       input: "mmseqs2DBs/GTDB_mmseqs2_format.fasta"
       output: expand("{temp}/taxonomy/{files}.dmp", temp=config["tmp_dir"], files=["delnodes","merged", "names", "nodes"]), config["tmp_dir"]+"/taxonomy/mapping"
       params: w=config["work_dir"], t=config["tmp_dir"]
+      threads: 1
+      resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 4, mem_mb=6400
       message: "Creating GTDB mmseqs2DBs seq_mapping and seq_taxonomy (step 2/4)"
       shell: "bash src/build_name_dmp_node_dmp.sh {input} {params.w} {params.t}"
 
@@ -371,35 +447,45 @@ if config["taxonomy_DB"] == "gtdb":
              a=expand("{temp}/taxonomy/{files}.dmp", temp=config["tmp_dir"], files=["delnodes","merged", "names", "nodes"]),
              b=config["tmp_dir"]+"/taxonomy/mapping"
       output: db="mmseqs2DBs/GTDB/SeqDB", h="mmseqs2DBs/GTDB/SeqDB_h"
+      threads: 1
+      resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 6, mem_mb=6400
       message: "Creating GTDB mmseqs2DBs (step 3/4)"
       conda: "mix_gc_env"
-      shell: "mmseqs createdb {input.i} {output.db} -v 0"
+      shell: "mmseqs createdb {input.i} {output.db} -v 1"
 
     rule taxdb:
       input:  "mmseqs2DBs/GTDB/SeqDB"
       output: "mmseqs2DBs/GTDB/SeqDB_mapping", b="mmseqs2DBs/GTDB/SeqDB_taxonomy"
       params: t1=config["tmp_dir"]+"/taxo", t2=config["tmp_dir"]+"/taxonomy", t3=config["tmp_dir"]+"/taxonomy/mapping"
       message: "Creating GTDB mmseqs2DBs (step 4/4)"
+      threads: 1
+      resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 6, mem_mb=6400
       conda: "mix_gc_env"
       shell:  """
                 mkdir -p {params.t1}
-                mmseqs createtaxdb {input} {params.t1} --ncbi-tax-dump {params.t2} --tax-mapping-file {params.t3} -v 0
+                mmseqs createtaxdb {input} {params.t1} --ncbi-tax-dump {params.t2} --tax-mapping-file {params.t3} -v 1
               """
 
-    rule taxonomy_gtdb:
-      input:  c="Gene_catalog/rep_contigs.fasta.gz",
+    rule taxonomy_gtdb: #proteins directly too
+      input:  c="Cluster/{chunkt}_mix_rep_contigs.fna", #"Gene_catalog/rep_contigs.fasta.gz",
               db="mmseqs2DBs/GTDB/SeqDB",
               a="mmseqs2DBs/GTDB/SeqDB_mapping",
               b="mmseqs2DBs/GTDB/SeqDB_taxonomy"
-      output: "Taxonomy_gtdb/Mix_easy_tax_lca.tsv"
+      output: "Taxonomy_gtdb/{chunkt}_Mix_easy_tax_lca.tsv" #"Taxonomy_gtdb/Mix_easy_tax_lca.tsv"
       message: "Representative genes taxonomy assignment - GTDB"
       conda: "mix_gc_env"
       threads: config["threads"]
-      params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_gtdb", o="Taxonomy_gtdb/Mix_easy_tax"
+      resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 96,
+                mem_mb=128000
+      params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_gtdb", o="Taxonomy_gtdb/{chunkt}_Mix_easy_tax" #before without chunk
       shell:  """
                 mkdir -p {params.t}
                 mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
               """
+
 
 rule download_create_uniprotDB:
   output: db="mmseqs2DBs/Uniprot/SeqDB",
@@ -409,24 +495,30 @@ rule download_create_uniprotDB:
   threads: config["threads"]
   params: t=config["tmp_dir"]+"/taxo", type=config["uniprot"]["uniprot_db_type"]
   message: "Downloading Uniprot database"
+  resources:
+        runtime = lambda wildcards, attempt: attempt*60*120,
+        mem_mb=128000
   conda: "mix_gc_env"
   shell:  """
             mkdir -p {params.t}
-            mmseqs databases {params.type} {output.db} {params.t} --threads {threads} -v 0
+            mmseqs databases {params.type} {output.db} {params.t} --threads {threads} --force-reuse 1
           """
 
 if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == False :
 
    rule taxonomy_uniprot:
-        input:  c="Gene_catalog/rep_contigs.fasta.gz",
+        input:  c="Cluster/{chunkt}_mix_rep_contigs.fna", #"Gene_catalog/rep_contigs.fasta.gz",
                 db="mmseqs2DBs/Uniprot/SeqDB",
                 a="mmseqs2DBs/Uniprot/SeqDB_mapping",
                 b="mmseqs2DBs/Uniprot/SeqDB_taxonomy"
-        output: "Taxonomy/Mix_easy_tax_lca.tsv", r="Taxonomy/Mix_easy_tax_report"
+        output: "Taxonomy/{chunkt}_Mix_easy_tax_lca.tsv", r="Taxonomy/{chunkt}_Mix_easy_tax_report"
         threads: config["threads"]
+    	resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 100,
+                mem_mb=128000
         message: "Representative genes taxonomy assignment - Uniprot"
         conda: "mix_gc_env"
-        params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo", o="Taxonomy/Mix_easy_tax"
+        params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo", o="Taxonomy/{chunkt}_Mix_easy_tax"
         shell:  """
                         mkdir -p {params.t}
                         mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
@@ -434,11 +526,17 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Fal
 
 
    rule taxonomy_uniport_tsv:
-        input: "Taxonomy/Mix_easy_tax_lca.tsv"
+        input: expand("Taxonomy/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst)) )
         output: "Gene_catalog/rep_contigs_taxonomy.tsv"
         threads: 1
+    	resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 8
         message: "Parsing taxonomy assignments"
-        shell: "python src/parse_results_tsv.py -i {input} -o {output}"
+        shell: """
+                fileine=$(echo {input} | sed s/" "/","/g)
+                python src/parse_results_tsv.py -i $fileine -o {output}
+               """
+
 
 if config["taxonomy_DB"] == "gtdb" or config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == True :
 
@@ -451,7 +549,8 @@ if config["taxonomy_DB"] == "gtdb" or config["taxonomy_DB"] == "uniprot" and con
             h="mmseqs2DBs/Uniprot_Virus/SeqDB_h",
             a="mmseqs2DBs/Uniprot_Virus/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_Virus/SeqDB_taxonomy"
-    threads: config["threads"]
+    threads: 1 # config["threads"]
+    resources: runtime = 60 * 15, mem_mb=6400
     message: "Filtering Uniprot database - Virus"
     conda: "mix_gc_env"
     params: p="--taxon-list 10239",
@@ -460,26 +559,32 @@ if config["taxonomy_DB"] == "gtdb" or config["taxonomy_DB"] == "uniprot" and con
             ai="Uniprot/SeqDB_mapping", ao="Uniprot_Virus/SeqDB_mapping",
             bi="Uniprot/SeqDB_taxonomy", bo="Uniprot_Virus/SeqDB_taxonomy"
     shell: '''
-              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 0
+              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 1
               cd {params.s}
-              cp {params.ai} tempo_map && mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map_virus
+              mv tempo_map_virus {params.ao}
+              cp {params.bi} tempo_tax_virus
+              mv tempo_tax_virus {params.bo}
               cd {params.w}
             '''
 
   rule taxonomy_virus:
-    input:  c="Gene_catalog/rep_contigs.fasta.gz",
+    input:  c="Cluster/{chunkt}_mix_rep_contigs.fna",
             db="mmseqs2DBs/Uniprot_Virus/SeqDB",
             a="mmseqs2DBs/Uniprot_Virus/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_Virus/SeqDB_taxonomy"
-    output: "Taxonomy_Virus/Mix_easy_tax_lca.tsv"
+    output: "Taxonomy_Virus/{chunkt}_Mix_easy_tax_lca.tsv"
     threads: config["threads"]
+    resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 10,
+                mem_mb=128000
     message: "Taxonomy assignment - Virus"
     conda: "mix_gc_env"
-    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_virus", o="Taxonomy_Virus/Mix_easy_tax"
+    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_virus_{chunkt}", o="Taxonomy_Virus/{chunkt}_Mix_easy_tax",
+            e=config["extra_mmseqs_taxonomy_params_Virus"]
     shell:  """
               mkdir -p {params.t}
-              mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
+              mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads} {params.e}
             """
 
   rule filtre_Euka:
@@ -491,33 +596,39 @@ if config["taxonomy_DB"] == "gtdb" or config["taxonomy_DB"] == "uniprot" and con
             h="mmseqs2DBs/Uniprot_Euka/SeqDB_h",
             a="mmseqs2DBs/Uniprot_Euka/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_Euka/SeqDB_taxonomy"
-    threads: config["threads"]
+    threads: 1 # config["threads"]
     message: "Filtering Uniprot database - Eukaryotes"
     conda: "mix_gc_env"
+    resources: runtime = 60 * 15, mem_mb=6400
     params: p="--taxon-list 2759",
             w=config["work_dir"],
             s=config["work_dir"]+"/mmseqs2DBs/",
             ai="Uniprot/SeqDB_mapping", ao="Uniprot_Euka/SeqDB_mapping",
             bi="Uniprot/SeqDB_taxonomy", bo="Uniprot_Euka/SeqDB_taxonomy"
     shell: '''
-              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 0
+              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 1
               cd {params.s}
-              cp {params.ai} tempo_map && mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map_euka
+	          mv tempo_map_euka {params.ao}
+              cp {params.bi} tempo_tax_euka
+	          mv tempo_tax_euka {params.bo}
               cd {params.w}
             '''
 
 
   rule taxonomy_Euka:
-    input:  c="Gene_catalog/rep_contigs.fasta.gz",
+    input:  c="Cluster/{chunkt}_mix_rep_contigs.fna",
             db="mmseqs2DBs/Uniprot_Euka/SeqDB",
             a="mmseqs2DBs/Uniprot_Euka/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_Euka/SeqDB_taxonomy"
-    output: "Taxonomy_Euka/Mix_easy_tax_lca.tsv"
+    output: "Taxonomy_Euka/{chunkt}_Mix_easy_tax_lca.tsv"
     threads: config["threads"]
+    resources:
+        	runtime = lambda wildcards, attempt: attempt*60 * 10,
+                mem_mb=128000
     message: "Taxonomy assignment - Eukaryotes"
     conda: "mix_gc_env"
-    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_euka", o="Taxonomy_Euka/Mix_easy_tax"
+    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_euka_{chunkt}", o="Taxonomy_Euka/{chunkt}_Mix_easy_tax"
     shell:  """
               mkdir -p {params.t}
               mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
@@ -533,7 +644,8 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
             h="mmseqs2DBs/Uniprot_arch/SeqDB_h",
             a="mmseqs2DBs/Uniprot_arch/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_arch/SeqDB_taxonomy"
-    threads: config["threads"]
+    threads: 1
+    resources: runtime = 60 * 15, mem_mb=6400
     message: "Filtering Uniprot database - Archeae"
     conda: "mix_gc_env"
     params: p="--taxon-list 2157",
@@ -542,23 +654,28 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
             ai="Uniprot/SeqDB_mapping", ao="Uniprot_arch/SeqDB_mapping",
             bi="Uniprot/SeqDB_taxonomy", bo="Uniprot_arch/SeqDB_taxonomy"
     shell: '''
-              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 0
+              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 1
               cd {params.s}
-              cp {params.ai} tempo_map && mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map_arch
+	          mv tempo_map_arch {params.ao}
+              cp {params.bi} tempo_tax_arch
+	          mv tempo_tax_arch {params.bo}
               cd {params.w}
             '''
 
   rule taxonomy_arch:
-    input:  c="Gene_catalog/rep_contigs.fasta.gz",
+    input:  c="Cluster/{chunkt}_mix_rep_contigs.fna",
             db="mmseqs2DBs/Uniprot_arch/SeqDB",
             a="mmseqs2DBs/Uniprot_arch/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_arch/SeqDB_taxonomy"
-    output: "Taxonomy_arch/Mix_easy_tax_lca.tsv"
+    output: "Taxonomy_arch/{chunkt}_Mix_easy_tax_lca.tsv"
     message: "Taxonomy assignment - Archeae"
     threads: config["threads"]
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 10,
+        mem_mb=128000
     conda: "mix_gc_env"
-    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_arch", o="Taxonomy_arch/Mix_easy_tax"
+    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_arch_{chunkt}", o="Taxonomy_arch/{chunkt}_Mix_easy_tax"
     shell:  """
               mkdir -p {params.t}
               mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
@@ -573,32 +690,38 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
             h="mmseqs2DBs/Uniprot_Bact/SeqDB_h",
             a="mmseqs2DBs/Uniprot_Bact/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_Bact/SeqDB_taxonomy"
-    threads: config["threads"]
+    threads: 1 #config["threads"]
     message: "Filtering Uniprot database - Bacteria"
     conda: "mix_gc_env"
+    resources: runtime = 60 * 15, mem_mb=6400
     params: p="--taxon-list 2",
             w=config["work_dir"],
             s=config["work_dir"]+"/mmseqs2DBs/",
             ai="Uniprot/SeqDB_mapping", ao="Uniprot_Bact/SeqDB_mapping",
             bi="Uniprot/SeqDB_taxonomy", bo="Uniprot_Bact/SeqDB_taxonomy"
     shell: '''
-              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads}
+              mmseqs filtertaxseqdb {input.db} {output.db} {params.p} --threads {threads} -v 1
               cd {params.s}
-              cp {params.ai} tempo_map && mv tempo_map {params.ao}
-              cp {params.bi} tempo_tax && mv tempo_tax {params.bo}
+              cp {params.ai} tempo_map_bact
+              mv tempo_map_bact {params.ao}
+              cp {params.bi} tempo_tax_bact
+              mv tempo_tax_bact {params.bo}
               cd {params.w}
             '''
 
   rule taxonomy_Bact:
-    input:  c="Gene_catalog/rep_contigs.fasta.gz",
+    input:  c="Cluster/{chunkt}_mix_rep_contigs.fna",
             db="mmseqs2DBs/Uniprot_Bact/SeqDB",
             a="mmseqs2DBs/Uniprot_Bact/SeqDB_mapping",
             b="mmseqs2DBs/Uniprot_Bact/SeqDB_taxonomy"
-    output: "Taxonomy_Bact/Mix_easy_tax_lca.tsv"
+    output: "Taxonomy_Bact/{chunkt}_Mix_easy_tax_lca.tsv"
     message: "Taxonomy assignment - Bacteria"
     threads: config["threads"]
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 10,
+        mem_mb=128000
     conda: "mix_gc_env"
-    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_Bact", o="Taxonomy_Bact/Mix_easy_tax"
+    params: p=config["mmseqs_taxonomy_params"], t=config["tmp_dir"]+"/taxo_Bact_{chunkt}", o="Taxonomy_Bact/{chunkt}_Mix_easy_tax"
     shell:  """
               mkdir -p {params.t}
               mmseqs easy-taxonomy {input.c} {input.db} {params.o} {params.t} {params.p} --threads {threads}
@@ -607,47 +730,72 @@ if config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == Tru
 
 if config["taxonomy_DB"] == "gtdb":
   rule taxonomy_combined:
-    input:  "Taxonomy_gtdb/Mix_easy_tax_lca.tsv",
-            "Taxonomy_Virus/Mix_easy_tax_lca.tsv",
-            "Taxonomy_Euka/Mix_easy_tax_lca.tsv"
+    input:  expand("Taxonomy_gtdb/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst))  ),
+            expand("Taxonomy_Virus/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst))  ),
+            expand("Taxonomy_Euka/{chunkt}_Mix_easy_tax_lca.tsv" ,chunkt=list(range(0,chunkst)) )
     output: "Gene_catalog/rep_contigs_taxonomy.tsv"
-    params: i="Taxonomy_gtdb/Mix_easy_tax_lca.tsv,Taxonomy_Virus/Mix_easy_tax_lca.tsv,Taxonomy_Euka/Mix_easy_tax_lca.tsv"
-    threads: 1
+    threads: 4
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 6,
+        mem_mb=6400*4
     message: "Merging Taxonomy assignment - GTDB/Uniprot"
-    shell: "python src/parse_results_tsv.py -i {params.i} -o {output}"
+    shell: """
+              fileine=$(echo {input} | sed s/" "/","/g)
+              python src/parse_results_tsv.py -i $fileine -o {output}
+           """
 
 elif config["taxonomy_DB"] == "uniprot" and config["uniprot"]["by_chuncks"] == True :
   rule taxonomy_uniprot_combined:
-    input:  "Taxonomy_Bact/Mix_easy_tax_lca.tsv",
-            "Taxonomy_arch/Mix_easy_tax_lca.tsv",
-            "Taxonomy_Virus/Mix_easy_tax_lca.tsv",
-            "Taxonomy_Euka/Mix_easy_tax_lca.tsv"
+    input:  expand("Taxonomy_Bact/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst)) ),
+            expand("Taxonomy_arch/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst)) ),
+            expand("Taxonomy_Virus/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst)) ),
+            expand("Taxonomy_Euka/{chunkt}_Mix_easy_tax_lca.tsv",chunkt=list(range(0,chunkst)) )
     output: "Gene_catalog/rep_contigs_taxonomy.tsv"
-    params: i="Taxonomy_Bact/Mix_easy_tax_lca.tsv,Taxonomy_arch/Mix_easy_tax_lca.tsv,Taxonomy_Virus/Mix_easy_tax_lca.tsv,Taxonomy_Euka/Mix_easy_tax_lca.tsv"
-    threads: 1
+    threads: 4
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 6,
+        mem_mb=6400*4
     message: "Merging Taxonomy assignment - Uniprot"
-    shell: "python src/parse_results_tsv.py -i {params.i} -o {output}"
-
+    shell: """
+            fileine=$(echo {input} | sed s/" "/","/g)
+            python src/parse_results_tsv.py -i $fileine -o {output}
+           """
 
 rule krona:
    input: "Gene_catalog/rep_contigs_taxonomy.tsv"
    output: "Gene_catalog/rep_contigs_taxonomy_krona.txt"
+   threads: 1
+   resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4,
+        mem_mb=6400
    shell: "python src/krona_clean_results_tsv.py -i {input} -o {output}"
 
 rule html:
    input: "Gene_catalog/rep_contigs_taxonomy_krona.txt"
    output: "Gene_catalog/rep_contigs_taxonomy_krona.html"
+   threads: 4
+   resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4,
+        mem_mb=6400*4
    conda: "mix_gc_env"
    shell: "ktImportText {input} -o {output}"
 
 rule krona_genes:
    input: p="Gene_catalog/rep_proteins.faa",t="Gene_catalog/rep_contigs_taxonomy.tsv"
    output: k="Gene_catalog/rep_genes_taxonomy_krona.txt", o="Gene_catalog/rep_genes_taxonomy.tsv"
+   threads: 4
+   resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4,
+        mem_mb=6400*4
    shell: "python src/from_contigs_to_genes_taxonomy.py -p {input.p} -t {input.t} -o {output.o} -k {output.k}"
 
 rule html_genes:
    input: "Gene_catalog/rep_genes_taxonomy_krona.txt"
    output: "Gene_catalog/rep_genes_taxonomy_krona.html"
+   threads: 4
+   resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4,
+        mem_mb=6400*4
    conda: "mix_gc_env"
    shell: "ktImportText {input} -o {output}"
 
@@ -656,4 +804,7 @@ rule table_rep_clusters:
     input: i="Cluster/mix_cluster.tsv", r="Gene_catalog/rep_proteins.faa"
     output:"Gene_catalog/rep_clusters.tsv"
     threads: 1
+    resources:
+        runtime = lambda wildcards, attempt: attempt*60 * 4,
+        mem_mb=6400
     shell: "python src/mix_cluster_formated.py -i {input.i} -r {input.r} -o {output}"
