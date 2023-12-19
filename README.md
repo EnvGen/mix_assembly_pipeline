@@ -115,10 +115,6 @@
 Gene_catalog is the main output folder, containing the following files:
 
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
-
-
-		All files are tab-separated and contain a one-line header indicating the content of each column.
-		
 		
 		Gene catalog:
 		        * rep_genes.fna.gz -- gene sequences in FASTA format    
@@ -126,7 +122,7 @@ Gene_catalog is the main output folder, containing the following files:
 		
 		Functional annotations:					
 		        * rep_annotations.tsv.gz - - This table regroups dbCAN, PFAM, RFAM (only the best hit, based on the highest score, is included) and EggNOG annotations per gene. 
-		
+			
 		Taxonomic annotations:
 		        * Mmseqs2_rep_genes_taxonomy.tsv -- Taxonomy affiliation using mmseq2 and Uniref90 
      			* CAT_rep_genes_taxonomy.tsv -- Taxonomy affiliation using CAT and GTDB 
