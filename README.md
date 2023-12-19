@@ -111,7 +111,8 @@
 			snakemake --profile /abs/path/to/mix_gc_pipeline/.config/snakemake/<name_of_your_slurm_profile_file> -s mix_gc.smk
 
 
-	4.	Gene_catalog is the main output folder, containing the following files:
+# Output	
+Gene_catalog is the main output folder, containing the following files:
 
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
 
