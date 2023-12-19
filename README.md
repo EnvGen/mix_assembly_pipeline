@@ -115,13 +115,29 @@
 
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
 
-		rep_genes.fna.gz
-		rep_proteins.faa.gz
-		rep_annotation.tsv.gz
-		rep_clusters_all.tsv
-		rep_contigs.fasta.gz
-		Mmseqs2_rep_contigs_taxonomy_krona.html
-		Mmseqs2_rep_contigs_taxonomy.tsv
-		Mmseqs2_rep_genes_taxonomy_krona.html
-		Mmseqs2_rep_genes_taxonomy.tsv
-		CAT_rep_genes_taxonomy_krona.html
+
+		All files are tab-separated and contain a one-line header indicating the content of each column.
+		
+		
+		Gene catalog:
+		        * rep_genes.fna.gz -- gene sequences in FASTA format    
+		        * rep_proteins.faa.gz - - protein sequences in FASTA format  
+		
+		Functional annotations:					
+		        * rep_annotations.tsv.gz - - This table regroups dbCAN, PFAM, RFAM (only the best hit, based on the highest score, is included) and EggNOG annotations per gene. 
+		
+		Taxonomic annotations:
+		        * Mmseqs2_rep_genes_taxonomy.tsv -- Taxonomy affiliation using mmseq2 and Uniref90 
+     			* CAT_rep_genes_taxonomy.tsv -- Taxonomy affiliation using CAT and GTDB 
+		
+		Miscellaneous files:
+			* Mmseqs2_rep_genes_taxonomy_krona.html - - Krona charts of representative gene taxonomic annotations (using mmseq2 and Uniref90)
+		        * CAT_rep_genes_taxonomy_krona.html - - Krona charts of representative gene taxonomic annotations (using CAT and GTDB)   
+			* rep_clusters_all.tsv - - Mix-assembly clusters with representative genes in the first column and cluster members in the second column (both ind and co-assembly)
+
+	  		* rep_contigs.fasta.gz -- Contigs from which representative Mix-assembly genes were predicted. 
+	  		* Mmseqs2_rep_contigs_taxonomy_krona.html - - Krona charts of contigs (rep_contigs.fasta.gz) taxonomic annotations (using mmseq2 and Uniref90)
+			* Mmseqs2_rep_contigs_taxonomy.tsv -- Tontigs (rep_contigs.fasta.gz taxonomy affiliation table using mmseq2 and Uniref90 
+
+		
+  
