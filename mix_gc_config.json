@@ -8,6 +8,11 @@
 "path_to_eggnog_db": "/abs/path/to/eggnog_db/data",
 "path_dbcan_db":"dbcan_db/dbCAN-fam-HMMs.txt",
 "path_pfam_db":"Pfam_db/Pfam-A.hmm",
+"path_to_CAT_gtdb_dir": "/abs/path/to/CAT_GTDB_database",
+"include_CAT_GTDB_taxonomy": True,
+"n_chuncks_annotations": 20,
+"n_chuncks_taxonomy": 50,
+"threads":20,
 "taxonomy_DB": "uniprot",
 "GTDB": {
         "GTDB_dir":"GTDB_aa_db/protein_faa_reps",
@@ -19,8 +24,5 @@
             "by_chuncks": True,
             },
 "mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1",
-"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
-"threads":20,
-"n_chuncks_annotations": 20,
-"n_chuncks_taxonomy": 50
+"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0"
 }

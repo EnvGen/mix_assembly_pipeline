@@ -51,6 +51,12 @@
 			"path_pfam_db":"Pfam_db/Pfam-A.hmm", ##It not available the pipeline will download it
 
 			Taxonomy assignment:
+
+			Using CAT:
+			"include_CAT_GTDB_taxonomy": True, # Using CAT contigs taxonomy with GTDB as reference database
+			"path_to_CAT_gtdb_dir": "/abs/path/to/CAT_GTDB_database",
+
+			Using Mmseqs2:
 			"taxonomy_DB": "uniprot", #options gtdb, uniprot - The pipeline will download the databases. GTDB works only on prokaryotes, you need to include a Uniprot database here after for the taxonomy affiliation of other Kindoms.  
 			"GTDB": {
 			        "GTDB_dir":"GTDB_aa_db/protein_faa_reps",
@@ -109,14 +115,13 @@
 
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
 
-		rep_annotation.tsv
-		rep_clusters.tsv
-		rep_contigs_taxonomy_krona.html
-		rep_contigs_taxonomy_krona.txt
-		rep_contigs_taxonomy.tsv
+		rep_genes.fna.gz
+		rep_proteins.faa.gz
+		rep_annotation.tsv.gz
+		rep_clusters_all.tsv
 		rep_contigs.fasta.gz
-		rep_genes_taxonomy_krona.html
-		rep_genes_taxonomy_krona.txt
-		rep_genes_taxonomy.tsv
-		rep_genes.fna
-		rep_proteins.faa
+		Mmseqs2_rep_contigs_taxonomy_krona.html
+		Mmseqs2_rep_contigs_taxonomy.tsv
+		Mmseqs2_rep_genes_taxonomy_krona.html
+		Mmseqs2_rep_genes_taxonomy.tsv
+		CAT_rep_genes_taxonomy_krona.html
