@@ -902,10 +902,13 @@ rule table_rep_clusters:
         mem_mb=6400*10
     shell: "python src/one_cluster_table_all_genes.py -i {input.i} -m {input.m} -o {output}"
 
-rule pigz_catalog:
-    input: "Gene_catalog/rep_proteins.faa", "Gene_catalog/rep_genes.fna",
-            "Gene_catalog/rep_annotation.tsv", "Gene_catalog/rep_contigs.fasta"
-	output: "Gene_catalog/rep_proteins.faa.gz", "Gene_catalog/rep_genes.fna.gz",
-            "Gene_catalog/rep_annotation.tsv.gz", "Gene_catalog/rep_contigs.fasta.gz"
-	threads: config["threads"]
-	shell: "pigz {input}"
+rule pigz_catalog:  
+	input: 	"Gene_catalog/rep_proteins.faa", "Gene_catalog/rep_genes.fna",
+            	"Gene_catalog/rep_annotation.tsv", "Gene_catalog/rep_contigs.fasta"
+        output: "Gene_catalog/rep_proteins.faa.gz", "Gene_catalog/rep_genes.fna.gz",
+            	"Gene_catalog/rep_annotation.tsv.gz", "Gene_catalog/rep_contigs.fasta.gz"
+        threads: config["threads"]
+        resources:
+	          runtime = lambda wildcards, attempt: attempt*60 * 10,
+                  mem_mb=6400*config["threads"]
+        shell: "pigz {input}"
