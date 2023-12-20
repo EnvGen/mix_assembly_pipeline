@@ -892,6 +892,7 @@ rule html_genes:
    conda: "mix_gc_env"
    shell: "ktImportText {input} -o {output}"
 
+# 5.  Tidying up Gene Catalog Folder
 
 rule table_rep_clusters:
     input: i="Cluster/ind_assembly_cluster.tsv", m="Cluster/mix_cluster.tsv"
