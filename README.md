@@ -2,7 +2,7 @@
 
 	1. Clone the repository:
 
-		git clone https://github.com/lfdelzam/mix_gc_pipeline
+		git clone https://github.com/lfdelzam/mix_assembly_pipeline
 
 	2. Download Eggnog mapper and EggNOG database:
 
