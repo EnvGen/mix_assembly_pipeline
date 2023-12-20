@@ -896,10 +896,10 @@ rule html_genes:
 rule table_rep_clusters:
     input: i="Cluster/ind_assembly_cluster.tsv", m="Cluster/mix_cluster.tsv"
     output:"Gene_catalog/rep_clusters_all.tsv"
-    threads: 4
+    threads: 10
     resources:
         runtime = lambda wildcards, attempt: attempt*60 * 4,
-        mem_mb=6400*4
+        mem_mb=6400*10
     shell: "python src/one_cluster_table_all_genes.py -i {input.i} -m {input.m} -o {output}"
 
 rule pigz_catalog:
