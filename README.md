@@ -11,11 +11,15 @@
 			download_eggnog_data.py --data_dir <your option. Same path to be set in the mix_gc_config.json - "Path_to_eggnog_db" >
 			conda deactivate
 
-	3. Create the conda environment mix_gc_env:
+	3. If you want to use CAT (Contig Annotation Tool) with GTDB (Genome Taxonomy Database):
+
+			conda create -n CAT_env -c bioconda -c conda-forge cat=5.3 -y
+
+	4. Create the conda environment mix_gc_env:
 
 		conda create -n mix_gc_env -c conda-forge -c bioconda prodigal=2.6.3 mmseqs2=13.45111 hmmer=3.3.2 krona=2.7 -y
 
-	4. Install snakemake:
+	5. Install snakemake:
 
 		conda create -n snakemake_env -c bioconda -c conda-forge snakemake=7.25.0 -y
 
@@ -70,14 +74,21 @@
 			"mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1",
 			"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
 
-			Threads:
-			"threads":20 - number of cpus to be used
-
 			To easy the functional annotation and taxonomy affilitaion steps, the process can be run by chunks
 			"n_chuncks_annotations": 20 - Number of chuncks.
 
-			"n_chuncks_taxonomy": 20
+			"n_chuncks_taxonomy": 50
 
+
+			Performance:
+
+			"Big_jobs": {"Threads": 20,  #number of cpus to be used                   
+			             "memory_per_cpu": 6400 # (MB)- Required when using HPC (high-performance computing) and several nodes
+			                              },
+			"Small_jobs": {"Threads": 1,
+			               "memory_per_cpu": 6400 # (MB) - Required when using HPC (high-performance computing) and several nodes
+			                                 },
+			"slurm_extra":"", #Optional argument added to "big_jobs" when using HPC (high-performance computing) and several nodes. For instance, on Uppmax "-C fat" to get access to the fat nodes (12800 mb per cpu)
 
 
 			Save modifications (CTRL +x, y).
@@ -111,30 +122,27 @@
 			snakemake --profile /abs/path/to/mix_gc_pipeline/.config/snakemake/<name_of_your_slurm_profile_file> -s mix_gc.smk
 
 
-# Output	
+# Output
 Gene_catalog is the main output folder, containing the following files:
 
  		Contigs and genes names(headers) will have the prefix sample name:: (if the gene comes from a individual assembly contig) or co:: (if the gene comes from a co_assembly contig)
-		
+
 		Gene catalog:
 		        * rep_genes.fna.gz -- gene sequences in FASTA format    
 		        * rep_proteins.faa.gz - - protein sequences in FASTA format  
-		
+
 		Functional annotations:					
-		        * rep_annotations.tsv.gz - - This table regroups dbCAN, PFAM, RFAM (only the best hit, based on the highest score, is included) and EggNOG annotations per gene. 
-			
+		        * rep_annotations.tsv.gz - - This table regroups dbCAN, PFAM, RFAM (only the best hit, based on the highest score, is included) and EggNOG annotations per gene.
+
 		Taxonomic annotations:
-		        * Mmseqs2_rep_genes_taxonomy.tsv -- Taxonomy affiliation using mmseq2 and Uniref90 
-     			* CAT_rep_genes_taxonomy.tsv -- Taxonomy affiliation using CAT and GTDB 
-		
+		        * Mmseqs2_rep_genes_taxonomy.tsv -- Taxonomy affiliation using mmseq2 and Uniref90
+     			* CAT_rep_genes_taxonomy.tsv -- Taxonomy affiliation using CAT and GTDB
+
 		Miscellaneous files:
 			* Mmseqs2_rep_genes_taxonomy_krona.html - - Krona charts of representative gene taxonomic annotations (using mmseq2 and Uniref90)
 		        * CAT_rep_genes_taxonomy_krona.html - - Krona charts of representative gene taxonomic annotations (using CAT and GTDB)   
 			* rep_clusters_all.tsv - - Mix-assembly clusters with representative genes in the first column and cluster members in the second column (both ind and co-assembly)
 
-	  		* rep_contigs.fasta.gz -- Contigs from which representative Mix-assembly genes were predicted. 
+	  		* rep_contigs.fasta.gz -- Contigs from which representative Mix-assembly genes were predicted.
 	  		* Mmseqs2_rep_contigs_taxonomy_krona.html - - Krona charts of contigs (rep_contigs.fasta.gz) taxonomic annotations (using mmseq2 and Uniref90)
-			* Mmseqs2_rep_contigs_taxonomy.tsv -- Tontigs (rep_contigs.fasta.gz taxonomy affiliation table using mmseq2 and Uniref90 
-
-		
-  
+			* Mmseqs2_rep_contigs_taxonomy.tsv -- Tontigs (rep_contigs.fasta.gz taxonomy affiliation table using mmseq2 and Uniref90

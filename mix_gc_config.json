@@ -12,7 +12,6 @@
 "include_CAT_GTDB_taxonomy": True,
 "n_chuncks_annotations": 20,
 "n_chuncks_taxonomy": 50,
-"threads":20,
 "taxonomy_DB": "uniprot",
 "GTDB": {
         "GTDB_dir":"GTDB_aa_db/protein_faa_reps",
@@ -21,8 +20,16 @@
         },
 "uniprot": {
             "uniprot_db_type":"UniRef90",
-            "by_chuncks": True,
+            "by_chuncks": False,
             },
-"mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1",
-"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0"
+"mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1 --min-seq-id 0.7",
+"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
+"performance": { "Big_jobs": {"Threads": 20,
+                              "memory_per_cpu": 6400
+                              },
+                  "Small_jobs": {"Threads": 1,
+                                 "memory_per_cpu": 6400
+                                 },
+                  "slurm_extra":"",
+                },
 }
