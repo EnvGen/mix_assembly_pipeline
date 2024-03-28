@@ -58,7 +58,7 @@
 
 			Using CAT:
 			"include_CAT_GTDB_taxonomy": True, # Using CAT contigs taxonomy with GTDB as reference database
-			"path_to_CAT_gtdb_dir": "/abs/path/to/CAT_GTDB_database",
+			"path_to_CAT_gtdb_dir": "/abs/path/to/CAT_GTDB_database", #Directory containg the CAT db based on the Genomes Taxonomy Database (GTDB). If directory empty, the pipeline will download the required files in this folder
 
 			Using Mmseqs2:
 			"taxonomy_DB": "uniprot", #options gtdb, uniprot - The pipeline will download the databases. GTDB works only on prokaryotes, you need to include a Uniprot database here after for the taxonomy affiliation of other Kindoms.  
@@ -136,7 +136,7 @@ Gene_catalog is the main output folder, containing the following files:
 
 		Taxonomic annotations:
 		        * Mmseqs2_rep_genes_taxonomy.tsv -- Taxonomy affiliation using mmseq2 and Uniref90
-     			* CAT_rep_genes_taxonomy.tsv -- Taxonomy affiliation using CAT and GTDB
+	  		* CAT_rep_genes_taxonomy.tsv -- Taxonomy affiliation using CAT and GTDB
 
 		Miscellaneous files:
 			* Mmseqs2_rep_genes_taxonomy_krona.html - - Krona charts of representative gene taxonomic annotations (using mmseq2 and Uniref90)
