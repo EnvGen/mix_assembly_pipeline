@@ -23,7 +23,7 @@
             "by_chuncks": False,
             },
 "mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1 --min-seq-id 0.7",
-"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
+"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 1",
 "performance": { "Big_jobs": {"Threads": 20,
                               "memory_per_cpu": 6400
                               },
