@@ -72,7 +72,7 @@
 			            "by_chuncks": True,  #Options: True, False. If True, it splits the taxonomy database into Kindoms to reduce the RAM requirements
 			            },
 			"mmseqs_taxonomy_params":"--tax-lineage 1 -v 1 --report-mode 1 --min-seq-id 0.7",
-			"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 0",
+			"extra_mmseqs_taxonomy_params_Virus": "--orf-filter 1", # Set the value to 0 if the input nucleotide sequence is short. This setting is only effective when the option ["uniprot"]["by_chunks"] is enabled and applies specifically to the Virus taxonomy database.
 
 			To easy the functional annotation and taxonomy affilitaion steps, the process can be run by chunks
 			"n_chuncks_annotations": 20 - Number of chuncks.
